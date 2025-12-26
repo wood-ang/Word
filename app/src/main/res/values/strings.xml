@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Word</string>
+    <string name="title_activity_create_actuvuty">CreateActuvuty</string>
 </resources>
