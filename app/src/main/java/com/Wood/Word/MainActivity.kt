@@ -4,15 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,6 +24,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.Wood.Word.ui.theme.CustomColors
 import com.Wood.Word.ui.theme.WordTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +40,6 @@ class MainActivity : ComponentActivity() {
 					navController = navController,
 					startDestination = "home"
 				) {
-					// 1. 为主页添加退出动画
 					composable(
 						route = "home",
 						exitTransition = { // 添加这整个exitTransition块
@@ -61,7 +60,6 @@ class MainActivity : ComponentActivity() {
 						HomeScreen(navController)
 					}
 
-					// 2. 创建页保持原有动画
 					composable(
 						route = "create",
 						enterTransition = {
@@ -80,6 +78,25 @@ class MainActivity : ComponentActivity() {
 					) {
 						CreateScreen(navController)
 					}
+
+					composable(
+						route = "bate",
+						enterTransition = {
+							slideInHorizontally(
+								initialOffsetX = { it }, // 从右侧滑入
+								animationSpec = tween(durationMillis = 350)
+							)
+						},
+						popExitTransition = { // 添加返回时的退出动画
+							// 当从创建页返回时，创建页向左滑出
+							slideOutHorizontally(
+								targetOffsetX = { -it }, // 向左滑动
+								animationSpec = tween(durationMillis = 350)
+							)
+						}
+					) {
+						BateScreen(navController)
+					}
 				}
 			}
 		}
@@ -88,7 +105,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) { // 重命名：MainActivity -> HomeScreen
+fun HomeScreen(navController: NavController) { 
 	val pagerState = rememberPagerState(pageCount = { 10 })
 
 	Scaffold(
@@ -98,6 +115,11 @@ fun HomeScreen(navController: NavController) { // 重命名：MainActivity -> Ho
 				actions = {
 					IconButton(onClick = { /* 处理操作 */ }) {
 						Icon(Icons.Default.Settings, contentDescription = "设置")
+					}
+					IconButton(
+						onClick = { navController.navigate("bate") }
+					) {
+						Icon(Icons.Default.Build, contentDescription = "开发选项")
 					}
 				}
 			)
@@ -129,9 +151,8 @@ fun HomeScreen(navController: NavController) { // 重命名：MainActivity -> Ho
 								text = "页面 ${page + 1}",
 								fontSize = 30.sp
 							)
-							// 添加一个查看详情的按钮
 							Button(onClick = {
-								// 可以导航到详情页，这里先留空
+
 							}) {
 								Text("查看详情")
 							}
@@ -151,13 +172,13 @@ fun HomeScreen(navController: NavController) { // 重命名：MainActivity -> Ho
 					horizontalArrangement = Arrangement.Center,
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					Button(
+					OutlinedButton(
 						onClick = { navController.navigate("create") },
 						modifier = Modifier.padding(8.dp)
 					) {
 						Text(text = "新建")
 					}
-					Button(
+					OutlinedButton(
 						onClick = { /* 导入功能 */ },
 						modifier = Modifier.padding(8.dp)
 					) {
@@ -171,13 +192,12 @@ fun HomeScreen(navController: NavController) { // 重命名：MainActivity -> Ho
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateScreen(navController: NavController) { // 重命名：CreateActivity -> CreateScreen
+fun CreateScreen(navController: NavController) {
 	Scaffold(
 		topBar = {
 			TopAppBar(
 				title = { Text(text = "创建") },
 				navigationIcon = {
-					// 添加返回按钮
 					IconButton(onClick = { navController.navigateUp() }) {
 						Icon(
 							Icons.Default.ArrowBack,
@@ -219,7 +239,84 @@ fun CreateScreen(navController: NavController) { // 重命名：CreateActivity -
 }
 
 
+@Composable
+fun BateScreen(navController: NavController) {
+	WordTheme {
+		Surface(
+			modifier = Modifier.fillMaxSize(),
+			color = MaterialTheme.colorScheme.background
+		) {
+			Column(
+				modifier = Modifier.padding(16.dp),
+				verticalArrangement = Arrangement.spacedBy(16.dp)
+			) {
+				// 使用金色主题的组件
+				Text(
+					text = "金色主题标题",
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.primary
+				)
 
+				Text(
+					text = "这是一个以金色(E3A618)为核心的主题",
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+
+				// 金色按钮
+				Button(
+					onClick = { /* Do something */ },
+					colors = ButtonDefaults.buttonColors(
+						containerColor = MaterialTheme.colorScheme.primary,
+						contentColor = MaterialTheme.colorScheme.onPrimary
+					)
+				) {
+					Text("金色按钮")
+				}
+
+				// 次要按钮
+				OutlinedButton(
+					onClick = { /* Do something */ }
+				) {
+					Text("轮廓按钮")
+				}
+
+				// 金色卡片
+				Card(
+					colors = CardDefaults.cardColors(
+						containerColor = MaterialTheme.colorScheme.surfaceVariant
+					)
+				) {
+					Column(modifier = Modifier.padding(16.dp)) {
+						Text(
+							"金色卡片",
+							style = MaterialTheme.typography.titleLarge,
+							color = MaterialTheme.colorScheme.primary
+						)
+						Text(
+							"使用暖米色作为卡片背景",
+							style = MaterialTheme.typography.bodyMedium
+						)
+					}
+				}
+
+				// 使用自定义颜色
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(50.dp)
+						.background(CustomColors.richBrown)
+				) {
+					Text(
+						"自定义浓郁棕色",
+						modifier = Modifier.align(Alignment.Center),
+						color = Color.White
+					)
+				}
+			}
+		}
+	}
+}
 
 
 
