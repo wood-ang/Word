@@ -1,69 +1,12 @@
 package com.Wood.Word;
 
-import android.os.Build;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class WordLib {
-
-    // 内部类：单词项
-    public static class WordItem {
-        private String word;      // 单词
-        private String meaning;   // 含义
-        private String example;   // 例句（可选）
-        private Category[] category;  // 词性/分类
-
-        // 构造函数
-        public WordItem(String word, String meaning) {
-            this.word = word;
-            this.meaning = meaning;
-        }
-
-        public WordItem(String word, String meaning, String example, Category[] category) {
-            this.word = word;
-            this.meaning = meaning;
-            this.example = example;
-            this.category = category;
-        }
-
-        // Getter方法
-        public String getWord() { return word; }
-        public String getMeaning() { return meaning; }
-        public String getExample() { return example; }
-        public Category[] getCategory() { return category; }
-
-        // Setter方法
-        public void setWord(String word) { this.word = word; }
-        public void setMeaning(String meaning) { this.meaning = meaning; }
-        public void setExample(String example) { this.example = example; }
-        public void setCategory(Category[] category) { this.category = category; }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(word);
-
-            if (category != null && !(category.length ==0)) {
-                sb.append(" [").append(category).append("]");
-            }
-
-            sb.append(": ").append(meaning);
-
-            if (example != null && !example.isEmpty()) {
-                sb.append(" 例: ").append(example);
-            }
-
-            return sb.toString();
-        }
-    }
-
     // 核心数据结构
     private final Map<Integer, WordItem> wordMap;  // ID -> WordItem
     private final Map<String, Integer> wordToIdMap; // 单词 -> ID（快速查找）
-
     private int nextId = 1;  // 下一个可用的ID
 
     // 构造函数
@@ -83,13 +26,15 @@ public class WordLib {
      * 添加单词（自动生成ID）
      * @return 分配的ID，如果单词已存在则返回-1
      */
-    public int addWord(String word, String meaning) {
-        // 检查单词是否已存在（不区分大小写）
-        if (containsWord(word)) {
+    public int addWord(String word, Meaning meaning) {
+        String normalizedWord = word.toLowerCase();
+
+        // 检查单词是否已存在
+        if (containsWord(normalizedWord)) {
             return -1;
         }
 
-        WordItem item = new WordItem(word, meaning);
+        WordItem item = new WordItem(normalizedWord, meaning);
         return addWordItem(item);
     }
 
@@ -97,12 +42,14 @@ public class WordLib {
      * 添加单词（完整信息）
      * @return 分配的ID，如果单词已存在则返回-1
      */
-    public int addWord(String word, String meaning, String example, Category[] category) {
-        if (containsWord(word)) {
+    public int addWord(String word, Meaning meaning, String example) {
+        String normalizedWord = word.toLowerCase();
+
+        if (containsWord(normalizedWord)) {
             return -1;
         }
 
-        WordItem item = new WordItem(word, meaning, example, category);
+        WordItem item = new WordItem(normalizedWord, meaning, example);
         return addWordItem(item);
     }
 
@@ -133,19 +80,19 @@ public class WordLib {
     }
 
     /**
-     * 根据ID获取单词含义
+     * 根据单词获取ID
      */
-    public String getMeaning(int id) {
-        WordItem item = wordMap.get(id);
-        return item != null ? item.getMeaning() : null;
+    public Integer getWordId(String word) {
+        return wordToIdMap.get(word.toLowerCase());
     }
 
     /**
-     * 根据单词获取含义
+     * 根据词性获取单词项
      */
-    public String getMeaning(String word) {
-        WordItem item = getByWord(word);
-        return item != null ? item.getMeaning() : null;
+    public List<WordItem> getByCategory(Category category) {
+        return wordMap.values().stream()
+                .filter(item -> item.hasCategory(category))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -156,19 +103,20 @@ public class WordLib {
             return false;
         }
 
-        // 如果要更新的单词已经存在且不是当前ID的单词
-        Integer existingId = wordToIdMap.get(newItem.getWord().toLowerCase());
+        String newWord = newItem.getWord().toLowerCase();
+        Integer existingId = wordToIdMap.get(newWord);
+
         if (existingId != null && existingId != id) {
             return false; // 单词已被其他ID使用
         }
 
-        // 移除旧单词的映射
+        // 移除旧映射
         WordItem oldItem = wordMap.get(id);
         wordToIdMap.remove(oldItem.getWord().toLowerCase());
 
         // 添加新映射
         wordMap.put(id, newItem);
-        wordToIdMap.put(newItem.getWord().toLowerCase(), id);
+        wordToIdMap.put(newWord, id);
         return true;
     }
 
@@ -213,25 +161,42 @@ public class WordLib {
      * 获取所有单词项
      */
     public Collection<WordItem> getAllWords() {
-        return wordMap.values();
+        return new ArrayList<>(wordMap.values());
+    }
+
+    public List<String> getAllWordStrings() {
+        return wordMap.values().stream()
+                .map(WordItem::getWord)
+                .collect(Collectors.toList());
     }
 
     /**
      * 获取所有ID
      */
     public Set<Integer> getAllIds() {
-        return wordMap.keySet();
+        return new HashSet<>(wordMap.keySet());
+    }
+
+    /**
+     * 搜索包含特定文本的单词
+     */
+    public List<WordItem> search(String keyword) {
+        String lowerKeyword = keyword.toLowerCase();
+        return wordMap.values().stream()
+                .filter(item -> item.getWord().toLowerCase().contains(lowerKeyword))
+                .collect(Collectors.toList());
     }
 
     // ========== 批量操作方法 ==========
 
     /**
-     * 批量添加单词（单词-含义对）
+     * 批量添加单词
      */
-    public Map<String, Integer> addAllWords(Map<String, String> wordMeanings) {
+    public Map<String, Integer> addAllWords(Map<String, List<Meaning>> wordsWithMeanings) {
         Map<String, Integer> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : wordMeanings.entrySet()) {
-            int id = addWord(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, List<Meaning>> entry : wordsWithMeanings.entrySet()) {
+            WordItem item = new WordItem(entry.getKey(), entry.getValue());
+            int id = addWordItem(item);
             if (id != -1) {
                 result.put(entry.getKey(), id);
             }
@@ -248,26 +213,30 @@ public class WordLib {
         nextId = 1;
     }
 
+    // ========== 统计方法 ==========
+
     /**
-     * 导出为简单Map（ID -> 单词）
+     * 获取词性统计
      */
-    public Map<Integer, String> exportIdToWordMap() {
-        Map<Integer, String> result = new HashMap<>();
-        for (Map.Entry<Integer, WordItem> entry : wordMap.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().getWord());
+    public Map<Category, Integer> getCategoryStatistics() {
+        Map<Category, Integer> stats = new HashMap<>();
+        for (WordItem item : wordMap.values()) {
+            for (Meaning meaning : item.getMeanings()) {
+                Category cat = meaning.getCategory();
+                stats.put(cat, stats.getOrDefault(cat, 0) + 1);
+            }
         }
-        return result;
+        return stats;
     }
 
     /**
-     * 导出为单词到含义的Map
+     * 获取单词数量最多的前N个词性
      */
-    public Map<String, String> exportWordToMeaningMap() {
-        Map<String, String> result = new HashMap<>();
-        for (WordItem item : wordMap.values()) {
-            result.put(item.getWord(), item.getMeaning());
-        }
-        return result;
+    public List<Map.Entry<Category, Integer>> getTopCategories(int n) {
+        return getCategoryStatistics().entrySet().stream()
+                .sorted((a, b) -> b.getValue() - a.getValue())
+                .limit(n)
+                .collect(Collectors.toList());
     }
 
     // ========== 显示方法 ==========
@@ -295,18 +264,32 @@ public class WordLib {
         return sb.toString();
     }
 
-    public enum Category {
-        N,
-        V,
-        ADJ,
-        ADV,
-        PRON,
-        PREP,
-        CONJ,
-        ART,
-        NUM,
-        INTERJ,
-        AUX_V,
-        ONOMATOPOEIA
+    /**
+     * 导出为简单Map（ID -> 单词）
+     */
+    public Map<Integer, String> exportIdToWordMap() {
+        Map<Integer, String> result = new HashMap<>();
+        for (Map.Entry<Integer, WordItem> entry : wordMap.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().getWord());
+        }
+        return result;
+    }
+
+    /**
+     * 导入数据
+     */
+    public void importData(Map<Integer, WordItem> data) {
+        this.wordMap.clear();
+        this.wordToIdMap.clear();
+
+        this.wordMap.putAll(data);
+        for (Map.Entry<Integer, WordItem> entry : data.entrySet()) {
+            wordToIdMap.put(entry.getValue().getWord().toLowerCase(), entry.getKey());
+        }
+
+        // 更新下一个ID
+        this.nextId = data.keySet().stream()
+                .mapToInt(Integer::intValue)
+                .max().orElse(0) + 1;
     }
 }
