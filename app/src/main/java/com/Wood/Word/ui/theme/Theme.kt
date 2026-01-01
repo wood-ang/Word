@@ -24,6 +24,8 @@ private val WarmGray = Color(0xFF756D5A)     // 暖灰色
 private val RichBrown = Color(0xFF8B7355)    // 浓郁棕色
 
 // 浅色主题 - 以金色为核心
+
+// 浅色主题 - 以金色为核心
 private val LightColorScheme = lightColorScheme(
     // 主要品牌颜色
     primary = GoldenYellow,
@@ -136,7 +138,6 @@ private val DarkColorScheme = darkColorScheme(
     // 表面色调
     surfaceTint = LightGold
 )
-
 @Composable
 fun WordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
